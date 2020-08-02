@@ -2,8 +2,8 @@ package tech.nautilus.beer.order.service.web.mappers;
 
 import tech.nautilus.beer.order.service.domain.BeerOrderLine;
 import tech.nautilus.beer.order.service.services.beer.BeerService;
-import tech.nautilus.beer.order.service.web.model.BeerDto;
-import tech.nautilus.beer.order.service.web.model.BeerOrderLineDto;
+import tech.nautilus.brewery.model.BeerDto;
+import tech.nautilus.brewery.model.BeerOrderLineDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 

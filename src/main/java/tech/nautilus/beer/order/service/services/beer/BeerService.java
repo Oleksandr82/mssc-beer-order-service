@@ -1,6 +1,6 @@
 package tech.nautilus.beer.order.service.services.beer;
 
-import tech.nautilus.beer.order.service.web.model.BeerDto;
+import tech.nautilus.brewery.model.BeerDto;
 
 import java.util.Optional;
 import java.util.UUID;

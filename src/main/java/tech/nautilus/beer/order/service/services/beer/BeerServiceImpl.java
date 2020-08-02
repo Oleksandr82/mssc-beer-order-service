@@ -1,6 +1,6 @@
 package tech.nautilus.beer.order.service.services.beer;
 
-import tech.nautilus.beer.order.service.web.model.BeerDto;
+import tech.nautilus.brewery.model.BeerDto;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Service;

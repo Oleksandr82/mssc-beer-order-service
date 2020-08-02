@@ -1,7 +1,7 @@
 package tech.nautilus.beer.order.service.web.mappers;
 
 import tech.nautilus.beer.order.service.domain.BeerOrderLine;
-import tech.nautilus.beer.order.service.web.model.BeerOrderLineDto;
+import tech.nautilus.brewery.model.BeerOrderLineDto;
 import org.mapstruct.DecoratedWith;
 import org.mapstruct.Mapper;
 

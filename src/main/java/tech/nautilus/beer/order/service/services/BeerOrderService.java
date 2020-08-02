@@ -18,8 +18,8 @@
 package tech.nautilus.beer.order.service.services;
 
 
-import tech.nautilus.beer.order.service.web.model.BeerOrderDto;
-import tech.nautilus.beer.order.service.web.model.BeerOrderPagedList;
+import tech.nautilus.brewery.model.BeerOrderDto;
+import tech.nautilus.brewery.model.BeerOrderPagedList;
 import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
