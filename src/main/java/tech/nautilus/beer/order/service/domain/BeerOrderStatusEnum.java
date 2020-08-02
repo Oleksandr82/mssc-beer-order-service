@@ -15,8 +15,15 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package tech.nautilus.beer.order.service.web.model;
+package tech.nautilus.beer.order.service.domain;
 
-public enum OrderStatusEnum {
-    NEW, READY, PICKED_UP
+public enum BeerOrderStatusEnum {
+    NEW,
+    VALIDATED,
+    VALIDATION_EXCEPTION,
+    ALLOCATED,
+    ALLOCATION_EXCEPTION,
+    PICKED_UP,
+    DELIVERED,
+    DELIVERY_EXCEPTION
 }
