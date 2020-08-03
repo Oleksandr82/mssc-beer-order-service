@@ -10,7 +10,8 @@ import org.springframework.jms.support.converter.MessageType;
 @Configuration
 public class JmsConfig {
 
-    public final static String TYPE_PROP_NAME = "_type";
+    public static final String VALIDATE_ORDER_QUEUE = "validate-order";
+    public static final String TYPE_PROP_NAME = "_type";
 
     @Bean
     public MessageConverter messageConverter(ObjectMapper objectMapper) {
