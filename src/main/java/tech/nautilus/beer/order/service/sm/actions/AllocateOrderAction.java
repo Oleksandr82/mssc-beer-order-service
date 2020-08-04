@@ -16,12 +16,12 @@ import tech.nautilus.brewery.model.events.ValidateOrderRequest;
 
 import java.util.UUID;
 
-import static tech.nautilus.beer.order.service.config.JmsConfig.VALIDATE_ORDER_QUEUE;
+import static tech.nautilus.beer.order.service.config.JmsConfig.ALLOCATE_ORDER_QUEUE;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ValidateOrderAction implements Action<BeerOrderStatusEnum, BeerOrderEventEnum> {
+public class AllocateOrderAction implements Action<BeerOrderStatusEnum, BeerOrderEventEnum> {
 
     private final BeerOrderRepository beerOrderRepository;
     private final BeerOrderMapper beerOrderMapper;
@@ -32,10 +32,10 @@ public class ValidateOrderAction implements Action<BeerOrderStatusEnum, BeerOrde
         String beerOrderId = (String) context.getMessage().getHeaders().get(BeerOrderManagerImpl.ORDER_ID_HEADER);
         BeerOrder beerOrder = beerOrderRepository.findOneById(UUID.fromString(beerOrderId));
 
-        jmsTemplate.convertAndSend(VALIDATE_ORDER_QUEUE, ValidateOrderRequest.builder()
+        jmsTemplate.convertAndSend(ALLOCATE_ORDER_QUEUE, ValidateOrderRequest.builder()
                 .beerOrder(beerOrderMapper.beerOrderToDto(beerOrder))
                 .build());
 
-        log.debug("Sent Validation request to queue '" + VALIDATE_ORDER_QUEUE + "' for order id {}", beerOrderId);
+        log.debug("Sent Allocation request to queue '" + ALLOCATE_ORDER_QUEUE + "' for order id {}", beerOrderId);
     }
 }
