@@ -1,15 +1,15 @@
 package tech.nautilus.beer.order.service.services;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tech.nautilus.beer.order.service.bootstrap.BeerOrderBootStrap;
 import tech.nautilus.beer.order.service.domain.Customer;
 import tech.nautilus.beer.order.service.repositories.BeerOrderRepository;
 import tech.nautilus.beer.order.service.repositories.CustomerRepository;
 import tech.nautilus.brewery.model.BeerOrderDto;
 import tech.nautilus.brewery.model.BeerOrderLineDto;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +37,7 @@ public class TastingRoomService {
     }
 
     @Transactional
-    @Scheduled(fixedRate = 2000) //run every 2 seconds
+    @Scheduled(fixedRate = 2000)
     public void placeTastingRoomOrder(){
 
         List<Customer> customerList = customerRepository.findAllByCustomerNameLike(BeerOrderBootStrap.TASTING_ROOM);
