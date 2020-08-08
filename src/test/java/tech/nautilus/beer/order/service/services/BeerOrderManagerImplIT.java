@@ -4,6 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -20,11 +23,14 @@ import tech.nautilus.brewery.model.BeerDto;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
+import static tech.nautilus.beer.order.service.services.testcomponents.BeerOrderAllocationListener.FAIL_ALLOCATION;
+import static tech.nautilus.beer.order.service.services.testcomponents.BeerOrderAllocationListener.PENDING_ALLOCATION;
 import static tech.nautilus.beer.order.service.services.testcomponents.BeerOrderValidationListener.FAIL_VALIDATION;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -86,8 +92,17 @@ public class BeerOrderManagerImplIT {
         );
     }
 
-    @Test
-    void testFailedValidation() throws JsonProcessingException {
+    private static Stream<Arguments> provideParamsForNegativeTransitions() {
+        return Stream.of(
+                Arguments.of(FAIL_VALIDATION, BeerOrderStatusEnum.VALIDATION_EXCEPTION),
+                Arguments.of(FAIL_ALLOCATION, BeerOrderStatusEnum.ALLOCATION_EXCEPTION),
+                Arguments.of(PENDING_ALLOCATION, BeerOrderStatusEnum.PENDING_INVENTORY)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParamsForNegativeTransitions")
+    void testFailedValidation(String customerRef, BeerOrderStatusEnum expectedStatus) throws JsonProcessingException {
 
         // Set up stubs
         BeerDto beerDto = BeerDto.builder().id(beerId).upc("12345").build();
@@ -96,13 +111,13 @@ public class BeerOrderManagerImplIT {
 
         // Perform tests
         BeerOrder newBeerOrder = createBeerOrder(beerDto);
-        newBeerOrder.setCustomerRef(FAIL_VALIDATION);
+        newBeerOrder.setCustomerRef(customerRef);
 
         BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(newBeerOrder);
 
-        await().untilAsserted(() -> {
+        await().atMost(5, SECONDS).untilAsserted(() -> {
             BeerOrder foundOrder = beerOrderRepository.findById(newBeerOrder.getId()).get();
-            assertEquals(BeerOrderStatusEnum.VALIDATION_EXCEPTION, foundOrder.getOrderStatus());
+            assertEquals(expectedStatus, foundOrder.getOrderStatus());
         });
     }
 
