@@ -87,6 +87,35 @@ public class BeerOrderManagerImplIT {
         );
     }
 
+    @Test
+    void testTransitionNewToPickedUp() throws JsonProcessingException {
+
+        // Set up stubs
+        BeerDto beerDto = BeerDto.builder().id(beerId).upc("12345").build();
+        stubFor(get(BeerServiceImpl.BEER_UPC_PATH_V1 + beerDto.getUpc())
+                .willReturn(okJson(objectMapper.writeValueAsString(beerDto))));
+
+        // Perform tests
+        BeerOrder newBeerOrder = createBeerOrder(beerDto);
+        BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(newBeerOrder);
+
+        await().atMost(5, SECONDS).until(() -> beerOrderRepository.findById(newBeerOrder.getId())
+                .map(order -> BeerOrderStatusEnum.ALLOCATED == order.getOrderStatus())
+                .orElse(false));
+
+        beerOrderManager.beerOrderPickedUp(savedBeerOrder.getId());
+
+        await().atMost(5, SECONDS).until(() -> beerOrderRepository.findById(newBeerOrder.getId())
+                .map(order -> BeerOrderStatusEnum.PICKED_UP == order.getOrderStatus())
+                .orElse(false));
+
+        BeerOrder savedBeerOrderPickedUp = beerOrderRepository.findById(savedBeerOrder.getId()).get();
+
+        // Analyse results
+        assertNotNull(savedBeerOrderPickedUp);
+        assertEquals(BeerOrderStatusEnum.PICKED_UP, savedBeerOrderPickedUp.getOrderStatus());
+    }
+
     public BeerOrder createBeerOrder(BeerDto beerDto) {
 
         BeerOrder beerOrder = BeerOrder.builder()

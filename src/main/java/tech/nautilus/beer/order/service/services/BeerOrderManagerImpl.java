@@ -16,7 +16,6 @@ import tech.nautilus.beer.order.service.sm.BeerOrderStateMachineInterceptor;
 import tech.nautilus.brewery.model.BeerOrderDto;
 
 import javax.transaction.Transactional;
-import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -106,6 +105,13 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
         beerOrderRepository.findById(beerOrderDto.getId()).ifPresentOrElse(beerOrder -> {
             sendBeerOrderEvent(beerOrder, BeerOrderEventEnum.ALLOCATION_FAILED);
         }, () -> log.error("Order Not Found. Id: " + beerOrderDto.getId()) );
+    }
+
+    @Override
+    public void beerOrderPickedUp(UUID id) {
+        beerOrderRepository.findById(id).ifPresentOrElse(beerOrder -> {
+            sendBeerOrderEvent(beerOrder, BeerOrderEventEnum.BEER_ORDER_PICKED_UP);
+        }, () -> log.error("Order Not Found. Id: " + id) );
     }
 
     private void sendBeerOrderEvent(BeerOrder beerOrder, BeerOrderEventEnum eventEnum) {
