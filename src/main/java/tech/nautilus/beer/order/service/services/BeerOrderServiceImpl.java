@@ -17,6 +17,7 @@
 
 package tech.nautilus.beer.order.service.services;
 
+import lombok.RequiredArgsConstructor;
 import tech.nautilus.beer.order.service.domain.BeerOrder;
 import tech.nautilus.beer.order.service.domain.BeerOrderStatusEnum;
 import tech.nautilus.beer.order.service.domain.Customer;
@@ -39,21 +40,13 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class BeerOrderServiceImpl implements BeerOrderService {
 
     private final BeerOrderRepository beerOrderRepository;
     private final CustomerRepository customerRepository;
     private final BeerOrderMapper beerOrderMapper;
-    private final ApplicationEventPublisher publisher;
-
-    public BeerOrderServiceImpl(BeerOrderRepository beerOrderRepository,
-                                CustomerRepository customerRepository,
-                                BeerOrderMapper beerOrderMapper, ApplicationEventPublisher publisher) {
-        this.beerOrderRepository = beerOrderRepository;
-        this.customerRepository = customerRepository;
-        this.beerOrderMapper = beerOrderMapper;
-        this.publisher = publisher;
-    }
+    private final BeerOrderManager beerOrderManager;
 
     @Override
     public BeerOrderPagedList listOrders(UUID customerId, Pageable pageable) {
@@ -78,27 +71,24 @@ public class BeerOrderServiceImpl implements BeerOrderService {
     @Transactional
     @Override
     public BeerOrderDto placeOrder(UUID customerId, BeerOrderDto beerOrderDto) {
-        Optional<Customer> customerOptional = customerRepository.findById(customerId);
 
-        if (customerOptional.isPresent()) {
+        return customerRepository.findById(customerId).map(customer -> {
+
             BeerOrder beerOrder = beerOrderMapper.dtoToBeerOrder(beerOrderDto);
             beerOrder.setId(null); //should not be set by outside client
-            beerOrder.setCustomer(customerOptional.get());
+            beerOrder.setCustomer(customer);
             beerOrder.setOrderStatus(BeerOrderStatusEnum.NEW);
-
             beerOrder.getBeerOrderLines().forEach(line -> line.setBeerOrder(beerOrder));
 
-            BeerOrder savedBeerOrder = beerOrderRepository.saveAndFlush(beerOrder);
+            BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(beerOrder);
 
-            log.debug("Saved Beer Order: " + beerOrder.getId());
-
-            //todo impl
-          //  publisher.publishEvent(new NewBeerOrderEvent(savedBeerOrder));
+            log.debug("Created a new Order: " + beerOrder.getId());
 
             return beerOrderMapper.beerOrderToDto(savedBeerOrder);
-        }
-        //todo add exception type
-        throw new RuntimeException("Customer Not Found");
+        }).orElseThrow(() -> {
+            log.error("Order Not Found. Id: " + customerId);
+            throw new RuntimeException("Customer Not Found");
+        });
     }
 
     @Override
@@ -108,10 +98,7 @@ public class BeerOrderServiceImpl implements BeerOrderService {
 
     @Override
     public void pickupOrder(UUID customerId, UUID orderId) {
-        BeerOrder beerOrder = getOrder(customerId, orderId);
-        beerOrder.setOrderStatus(BeerOrderStatusEnum.PICKED_UP);
-
-        beerOrderRepository.save(beerOrder);
+        beerOrderManager.beerOrderPickedUp(orderId);
     }
 
     private BeerOrder getOrder(UUID customerId, UUID orderId){

@@ -25,6 +25,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
+import static tech.nautilus.beer.order.service.services.testcomponents.BeerOrderValidationListener.FAIL_VALIDATION;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWireMock
@@ -42,11 +43,9 @@ public class BeerOrderManagerImplIT {
     @Autowired
     ObjectMapper objectMapper;
 
+    // Mock TastingRoomService to suppress scheduled tasks
     @MockBean
     TastingRoomService tastingRoomService;
-
-//    @Autowired
-//    WireMockServer wireMockServer;
 
     Customer testCustomer;
 
@@ -85,6 +84,26 @@ public class BeerOrderManagerImplIT {
                         .map(line -> line.getOrderQuantity() == line.getQuantityAllocated())
                         .allMatch(allItemsAllocated -> allItemsAllocated))
         );
+    }
+
+    @Test
+    void testFailedValidation() throws JsonProcessingException {
+
+        // Set up stubs
+        BeerDto beerDto = BeerDto.builder().id(beerId).upc("12345").build();
+        stubFor(get(BeerServiceImpl.BEER_UPC_PATH_V1 + beerDto.getUpc())
+                .willReturn(okJson(objectMapper.writeValueAsString(beerDto))));
+
+        // Perform tests
+        BeerOrder newBeerOrder = createBeerOrder(beerDto);
+        newBeerOrder.setCustomerRef(FAIL_VALIDATION);
+
+        BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(newBeerOrder);
+
+        await().untilAsserted(() -> {
+            BeerOrder foundOrder = beerOrderRepository.findById(newBeerOrder.getId()).get();
+            assertEquals(BeerOrderStatusEnum.VALIDATION_EXCEPTION, foundOrder.getOrderStatus());
+        });
     }
 
     @Test
@@ -133,6 +152,4 @@ public class BeerOrderManagerImplIT {
 
         return beerOrder;
     }
-
-
 }
