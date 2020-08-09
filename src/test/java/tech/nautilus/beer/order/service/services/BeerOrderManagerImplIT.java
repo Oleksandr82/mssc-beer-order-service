@@ -22,6 +22,7 @@ import tech.nautilus.beer.order.service.repositories.CustomerRepository;
 import tech.nautilus.beer.order.service.services.beer.BeerServiceImpl;
 import tech.nautilus.brewery.model.BeerDto;
 import tech.nautilus.brewery.model.events.AllocationFailureEvent;
+import tech.nautilus.brewery.model.events.DeallocateOrderRequest;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -32,9 +33,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
-import static tech.nautilus.beer.order.service.services.testcomponents.BeerOrderAllocationListener.FAIL_ALLOCATION;
-import static tech.nautilus.beer.order.service.services.testcomponents.BeerOrderAllocationListener.PENDING_ALLOCATION;
+import static tech.nautilus.beer.order.service.services.testcomponents.BeerOrderAllocationListener.*;
 import static tech.nautilus.beer.order.service.services.testcomponents.BeerOrderValidationListener.FAIL_VALIDATION;
+import static tech.nautilus.beer.order.service.services.testcomponents.BeerOrderValidationListener.SKIP_VALIDATION;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWireMock
@@ -100,15 +101,17 @@ public class BeerOrderManagerImplIT {
 
     private static Stream<Arguments> provideParamsForNegativeTransitions() {
         return Stream.of(
-                Arguments.of(FAIL_VALIDATION, BeerOrderStatusEnum.VALIDATION_EXCEPTION),
-                Arguments.of(FAIL_ALLOCATION, BeerOrderStatusEnum.ALLOCATION_EXCEPTION),
-                Arguments.of(PENDING_ALLOCATION, BeerOrderStatusEnum.PENDING_INVENTORY)
+                Arguments.of(FAIL_VALIDATION, BeerOrderStatusEnum.VALIDATION_EXCEPTION, false),
+                Arguments.of(FAIL_ALLOCATION, BeerOrderStatusEnum.ALLOCATION_EXCEPTION, true),
+                Arguments.of(PENDING_ALLOCATION, BeerOrderStatusEnum.PENDING_INVENTORY, false)
         );
     }
 
     @ParameterizedTest
     @MethodSource("provideParamsForNegativeTransitions")
-    void testFailedValidation(String customerRef, BeerOrderStatusEnum expectedStatus) throws JsonProcessingException {
+    void testFailedValidation(String customerRef,
+                              BeerOrderStatusEnum expectedStatus,
+                              boolean checkAllocationFailureEventWasFired) throws JsonProcessingException {
 
         // Set up stubs
         BeerDto beerDto = BeerDto.builder().id(beerId).upc("12345").build();
@@ -126,12 +129,58 @@ public class BeerOrderManagerImplIT {
             assertEquals(expectedStatus, foundOrder.getOrderStatus());
         });
 
-        if (customerRef.equals(FAIL_ALLOCATION)) {
+        if (checkAllocationFailureEventWasFired) {
             // Validate that the Allocation Failure Event has been sent
             Object allocationFailureEvent = jmsTemplate.receiveAndConvert(JmsConfig.ALLOCATION_FAILURE_QUEUE);
             assertNotNull(allocationFailureEvent);
             assertTrue(allocationFailureEvent instanceof AllocationFailureEvent);
             assertEquals(newBeerOrder.getId(), ((AllocationFailureEvent) allocationFailureEvent).getOrderId());
+        }
+    }
+
+    private static Stream<Arguments> provideParamsForCancelFlowTransitions() {
+        return Stream.of(
+                Arguments.of(SKIP_VALIDATION, BeerOrderStatusEnum.VALIDATION_PENDING, false),
+                Arguments.of(SKIP_ALLOCATION, BeerOrderStatusEnum.ALLOCATION_PENDING, false),
+                Arguments.of("Regular customer", BeerOrderStatusEnum.ALLOCATED, true)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParamsForCancelFlowTransitions")
+    void testPendingToCancelled(String customerRef,
+                                BeerOrderStatusEnum expectedIntermediateStatus,
+                                boolean checkDeallocateEvenWasFired) throws JsonProcessingException {
+
+        // Set up stubs
+        BeerDto beerDto = BeerDto.builder().id(beerId).upc("12345").build();
+        stubFor(get(BeerServiceImpl.BEER_UPC_PATH_V1 + beerDto.getUpc())
+                .willReturn(okJson(objectMapper.writeValueAsString(beerDto))));
+
+        // Perform tests
+        BeerOrder newBeerOrder = createBeerOrder(beerDto);
+        newBeerOrder.setCustomerRef(customerRef);
+
+        BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(newBeerOrder);
+
+        await().atMost(5, SECONDS).untilAsserted(() -> {
+            BeerOrder foundOrder = beerOrderRepository.findById(newBeerOrder.getId()).get();
+            assertEquals(expectedIntermediateStatus, foundOrder.getOrderStatus());
+        });
+
+        beerOrderManager.cancelOrder(newBeerOrder.getId());
+
+        await().atMost(5, SECONDS).untilAsserted(() -> {
+            BeerOrder foundOrder = beerOrderRepository.findById(newBeerOrder.getId()).get();
+            assertEquals(BeerOrderStatusEnum.CANCELLED, foundOrder.getOrderStatus());
+        });
+
+        if (checkDeallocateEvenWasFired) {
+            // Validate that the Allocation Failure Event has been sent
+            Object deallocateOrderRequest = jmsTemplate.receiveAndConvert(JmsConfig.DEALLOCATE_ORDER_REQUEST_QUEUE);
+            assertNotNull(deallocateOrderRequest);
+            assertTrue(deallocateOrderRequest instanceof DeallocateOrderRequest);
+            assertEquals(newBeerOrder.getId(), ((DeallocateOrderRequest) deallocateOrderRequest).getBeerOrderDto().getId());
         }
     }
 

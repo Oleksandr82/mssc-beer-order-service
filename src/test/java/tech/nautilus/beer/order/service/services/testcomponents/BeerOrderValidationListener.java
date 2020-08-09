@@ -18,21 +18,24 @@ import java.util.Optional;
 public class BeerOrderValidationListener {
 
     public static final String FAIL_VALIDATION = "fail-validation";
+    public static final String SKIP_VALIDATION = "skip-validation";
 
     private final JmsTemplate jmsTemplate;
 
     @JmsListener(destination = JmsConfig.VALIDATE_ORDER_REQUEST_QUEUE)
     public void listen(Message msg) {
 
-        boolean isValid = true;
-
         ValidateOrderRequest request = (ValidateOrderRequest) msg.getPayload();
 
-        jmsTemplate.convertAndSend(JmsConfig.VALIDATE_ORDER_RESPONSE_QUEUE,
-                ValidateOrderResult.builder()
-                        .isValid(Optional.ofNullable(request.getBeerOrder().getCustomerRef())
-                                .map(ref -> !ref.equals(FAIL_VALIDATION)).orElse(true))
-                        .orderId(request.getBeerOrder().getId())
-                        .build());
+        if (Optional.ofNullable(request.getBeerOrder().getCustomerRef())
+                .map(ref -> !ref.equals(SKIP_VALIDATION)).orElse(true)) {
+
+            jmsTemplate.convertAndSend(JmsConfig.VALIDATE_ORDER_RESPONSE_QUEUE,
+                    ValidateOrderResult.builder()
+                            .isValid(Optional.ofNullable(request.getBeerOrder().getCustomerRef())
+                                    .map(ref -> !ref.equals(FAIL_VALIDATION)).orElse(true))
+                            .orderId(request.getBeerOrder().getId())
+                            .build());
+        }
     }
 }

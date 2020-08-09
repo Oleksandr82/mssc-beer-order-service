@@ -18,6 +18,7 @@ import java.util.Optional;
 public class BeerOrderAllocationListener {
 
     public static final String FAIL_ALLOCATION = "fail-allocation";
+    public static final String SKIP_ALLOCATION = "skip-allocation";
     public static final String PENDING_ALLOCATION = "pending-allocation";
 
     private final JmsTemplate jmsTemplate;
@@ -30,13 +31,17 @@ public class BeerOrderAllocationListener {
         request.getBeerOrderDto().getBeerOrderLines()
                 .forEach(orderLine -> orderLine.setQuantityAllocated(orderLine.getOrderQuantity()));
 
-        jmsTemplate.convertAndSend(JmsConfig.ALLOCATE_ORDER_RESPONSE_QUEUE,
-                AllocateOrderResult.builder()
-                        .allocationError(Optional.ofNullable(request.getBeerOrderDto().getCustomerRef())
-                                .map(ref -> ref.equals(FAIL_ALLOCATION)).orElse(false))
-                        .pendingInventory(Optional.ofNullable(request.getBeerOrderDto().getCustomerRef())
-                                .map(ref -> ref.equals(PENDING_ALLOCATION)).orElse(false))
-                        .beerOrderDto(request.getBeerOrderDto())
-                        .build());
+        if (Optional.ofNullable(request.getBeerOrderDto().getCustomerRef())
+                .map(ref -> !ref.equals(SKIP_ALLOCATION)).orElse(true)) {
+
+            jmsTemplate.convertAndSend(JmsConfig.ALLOCATE_ORDER_RESPONSE_QUEUE,
+                    AllocateOrderResult.builder()
+                            .allocationError(Optional.ofNullable(request.getBeerOrderDto().getCustomerRef())
+                                    .map(ref -> ref.equals(FAIL_ALLOCATION)).orElse(false))
+                            .pendingInventory(Optional.ofNullable(request.getBeerOrderDto().getCustomerRef())
+                                    .map(ref -> ref.equals(PENDING_ALLOCATION)).orElse(false))
+                            .beerOrderDto(request.getBeerOrderDto())
+                            .build());
+        }
     }
 }

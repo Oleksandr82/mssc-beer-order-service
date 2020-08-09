@@ -18,6 +18,8 @@ public class JmsConfig {
 
     public static final String ALLOCATION_FAILURE_QUEUE = "allocation-failure";
 
+    public static final String DEALLOCATE_ORDER_REQUEST_QUEUE = "deallocate-order-request";
+
 
     public static final String TYPE_PROP_NAME = "_type";
 
