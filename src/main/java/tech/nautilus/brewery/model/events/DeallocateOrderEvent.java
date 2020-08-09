@@ -10,6 +10,6 @@ import tech.nautilus.brewery.model.BeerOrderDto;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DeallocateOrderRequest {
+public class DeallocateOrderEvent {
     private BeerOrderDto beerOrderDto;
 }

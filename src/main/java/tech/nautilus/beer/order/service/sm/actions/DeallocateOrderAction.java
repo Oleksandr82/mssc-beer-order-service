@@ -11,11 +11,11 @@ import tech.nautilus.beer.order.service.domain.BeerOrderStatusEnum;
 import tech.nautilus.beer.order.service.repositories.BeerOrderRepository;
 import tech.nautilus.beer.order.service.services.BeerOrderManagerImpl;
 import tech.nautilus.beer.order.service.web.mappers.BeerOrderMapper;
-import tech.nautilus.brewery.model.events.DeallocateOrderRequest;
+import tech.nautilus.brewery.model.events.DeallocateOrderEvent;
 
 import java.util.UUID;
 
-import static tech.nautilus.beer.order.service.config.JmsConfig.DEALLOCATE_ORDER_REQUEST_QUEUE;
+import static tech.nautilus.beer.order.service.config.JmsConfig.DEALLOCATE_ORDER_EVENT_QUEUE;
 
 @Slf4j
 @Component
@@ -32,10 +32,10 @@ public class DeallocateOrderAction implements Action<BeerOrderStatusEnum, BeerOr
         String beerOrderId = (String) context.getMessage().getHeaders().get(BeerOrderManagerImpl.ORDER_ID_HEADER);
 
         beerOrderRepository.findById(UUID.fromString(beerOrderId)).ifPresentOrElse(beerOrder -> {
-            jmsTemplate.convertAndSend(DEALLOCATE_ORDER_REQUEST_QUEUE, DeallocateOrderRequest.builder()
+            jmsTemplate.convertAndSend(DEALLOCATE_ORDER_EVENT_QUEUE, DeallocateOrderEvent.builder()
                     .beerOrderDto(beerOrderMapper.beerOrderToDto(beerOrder))
                     .build());
-            log.debug("Sent Deallocate request to queue '" + DEALLOCATE_ORDER_REQUEST_QUEUE + "' for order id {}", beerOrderId);
+            log.debug("Sent Deallocate event to queue '" + DEALLOCATE_ORDER_EVENT_QUEUE + "' for order id {}", beerOrderId);
 
         }, () -> log.error("Beer Oder Not Found: {}", beerOrderId));
     }

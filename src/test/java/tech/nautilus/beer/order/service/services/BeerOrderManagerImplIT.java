@@ -22,7 +22,7 @@ import tech.nautilus.beer.order.service.repositories.CustomerRepository;
 import tech.nautilus.beer.order.service.services.beer.BeerServiceImpl;
 import tech.nautilus.brewery.model.BeerDto;
 import tech.nautilus.brewery.model.events.AllocationFailureEvent;
-import tech.nautilus.brewery.model.events.DeallocateOrderRequest;
+import tech.nautilus.brewery.model.events.DeallocateOrderEvent;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -177,10 +177,10 @@ public class BeerOrderManagerImplIT {
 
         if (checkDeallocateEvenWasFired) {
             // Validate that the Allocation Failure Event has been sent
-            Object deallocateOrderRequest = jmsTemplate.receiveAndConvert(JmsConfig.DEALLOCATE_ORDER_REQUEST_QUEUE);
-            assertNotNull(deallocateOrderRequest);
-            assertTrue(deallocateOrderRequest instanceof DeallocateOrderRequest);
-            assertEquals(newBeerOrder.getId(), ((DeallocateOrderRequest) deallocateOrderRequest).getBeerOrderDto().getId());
+            Object deallocateOrderEvent = jmsTemplate.receiveAndConvert(JmsConfig.DEALLOCATE_ORDER_EVENT_QUEUE);
+            assertNotNull(deallocateOrderEvent);
+            assertTrue(deallocateOrderEvent instanceof DeallocateOrderEvent);
+            assertEquals(newBeerOrder.getId(), ((DeallocateOrderEvent) deallocateOrderEvent).getBeerOrderDto().getId());
         }
     }
 
