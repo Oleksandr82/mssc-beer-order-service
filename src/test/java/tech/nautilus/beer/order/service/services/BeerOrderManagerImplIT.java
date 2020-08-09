@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
+import org.springframework.jms.core.JmsTemplate;
+import tech.nautilus.beer.order.service.config.JmsConfig;
 import tech.nautilus.beer.order.service.domain.BeerOrder;
 import tech.nautilus.beer.order.service.domain.BeerOrderLine;
 import tech.nautilus.beer.order.service.domain.BeerOrderStatusEnum;
@@ -19,6 +21,7 @@ import tech.nautilus.beer.order.service.repositories.BeerOrderRepository;
 import tech.nautilus.beer.order.service.repositories.CustomerRepository;
 import tech.nautilus.beer.order.service.services.beer.BeerServiceImpl;
 import tech.nautilus.brewery.model.BeerDto;
+import tech.nautilus.brewery.model.events.AllocationFailureEvent;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -48,6 +51,9 @@ public class BeerOrderManagerImplIT {
 
     @Autowired
     ObjectMapper objectMapper;
+
+    @Autowired
+    JmsTemplate jmsTemplate;
 
     // Mock TastingRoomService to suppress scheduled tasks
     @MockBean
@@ -119,6 +125,14 @@ public class BeerOrderManagerImplIT {
             BeerOrder foundOrder = beerOrderRepository.findById(newBeerOrder.getId()).get();
             assertEquals(expectedStatus, foundOrder.getOrderStatus());
         });
+
+        if (customerRef.equals(FAIL_ALLOCATION)) {
+            // Validate that the Allocation Failure Event has been sent
+            Object allocationFailureEvent = jmsTemplate.receiveAndConvert(JmsConfig.ALLOCATION_FAILURE_QUEUE);
+            assertNotNull(allocationFailureEvent);
+            assertTrue(allocationFailureEvent instanceof AllocationFailureEvent);
+            assertEquals(newBeerOrder.getId(), ((AllocationFailureEvent) allocationFailureEvent).getOrderId());
+        }
     }
 
     @Test

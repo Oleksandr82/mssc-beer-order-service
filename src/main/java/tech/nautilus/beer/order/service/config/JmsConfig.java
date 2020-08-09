@@ -16,6 +16,9 @@ public class JmsConfig {
     public static final String ALLOCATE_ORDER_REQUEST_QUEUE = "allocate-order-request";
     public static final String ALLOCATE_ORDER_RESPONSE_QUEUE = "allocate-order-response";
 
+    public static final String ALLOCATION_FAILURE_QUEUE = "allocation-failure";
+
+
     public static final String TYPE_PROP_NAME = "_type";
 
     @Bean
