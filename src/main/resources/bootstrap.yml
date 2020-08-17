@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: order-service
+
+---
+spring:
+  profiles: local-discovery
+  cloud:
+    config:
+      discovery:
+        service-id: brewery-config-server
+        enabled: true
+      fail-fast: true
