@@ -11,3 +11,5 @@ spring:
         service-id: brewery-config-server
         enabled: true
       fail-fast: true
+      username: BreweryConfigUser
+      password: SecretPassword42
