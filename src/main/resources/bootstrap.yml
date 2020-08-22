@@ -13,3 +13,8 @@ spring:
       fail-fast: true
       username: BreweryConfigUser
       password: SecretPassword42
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://eurekaUser:eurekaNotSoSecretPassword42@localhost:8761/eureka/
