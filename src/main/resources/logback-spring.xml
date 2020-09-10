@@ -21,6 +21,31 @@
                 <loggerName/>
                 <threadName/>
                 <context/>
+                <stackTrace>
+                    <!--                    <fieldName>stacktrace</fieldName>-->
+                    <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                        <maxDepthPerThrowable>30</maxDepthPerThrowable>
+                        <maxLength>2048</maxLength>
+                        <shortenedClassNameLength>20</shortenedClassNameLength>
+                        <rootCauseFirst>true</rootCauseFirst>
+                        <inlineHash>false</inlineHash>
+                        <!-- generated class names -->
+                        <exclude>\$\$FastClassByCGLIB\$\$</exclude>
+                        <exclude>\$\$EnhancerBySpringCGLIB\$\$</exclude>
+                        <exclude>^sun\.reflect\..*\.invoke</exclude>
+                        <!-- JDK internals -->
+                        <exclude>^com\.sun\.</exclude>
+                        <exclude>^sun\.net\.</exclude>
+                        <!-- dynamic invocation -->
+                        <exclude>^net\.sf\.cglib\.proxy\.MethodProxy\.invoke</exclude>
+                        <exclude>^org\.springframework\.cglib\.</exclude>
+                        <exclude>^org\.springframework\.transaction\.</exclude>
+                        <exclude>^org\.springframework\.validation\.</exclude>
+                        <exclude>^org\.springframework\.app\.</exclude>
+                        <exclude>^org\.springframework\.aop\.</exclude>
+                        <exclude>^java\.lang\.reflect\.Method\.invoke</exclude>
+                    </throwableConverter>
+                </stackTrace>
                 <pattern>
                     <omitEmptyFields>true</omitEmptyFields>
                     <pattern>
@@ -42,7 +67,7 @@
             </providers>
         </encoder>
     </appender>
-    
+
     <root level="INFO">
         <appender-ref ref="jsonConsole"/>
     </root>
